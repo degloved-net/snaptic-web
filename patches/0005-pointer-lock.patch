@@ -1,0 +1,36 @@
+diff --git a/game/cursor/cursor.gd b/game/cursor/cursor.gd
+index 7819258..354636a 100644
+--- a/game/cursor/cursor.gd
++++ b/game/cursor/cursor.gd
+@@ -109,7 +109,10 @@ func _input(event: InputEvent) -> void :
+ 			_emit_button(event.button_index, event.pressed, event.double_click, event.factor)
+ 			_handled()
+ 		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+-			enter_pointer_mode()
++			if OS.has_feature("web") and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
++				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
++			else:
++				enter_pointer_mode()
+ 			_handled()
+ 
+ 
+@@ -388,6 +391,10 @@ func _apply_mouse_mode() -> void :
+ 	var wanted: int = Input.MOUSE_MODE_CAPTURED
+ 	if (_pointer_mode and not _confine_mouse) or not get_window().has_focus():
+ 		wanted = Input.MOUSE_MODE_HIDDEN
++	# Pointer lock needs a browser input event.
++	if OS.has_feature("web") and wanted == Input.MOUSE_MODE_CAPTURED:
++		if not JavaScriptBridge.eval("navigator.userActivation.isActive"):
++			wanted = Input.MOUSE_MODE_HIDDEN
+ 	Input.mouse_mode = wanted as Input.MouseMode
+ 	_warp_os_cursor()
+ 
+@@ -465,6 +472,8 @@ func _glide(delta: float) -> void :
+ 
+ 
+ func _swallow_activation_click(event: InputEventMouseButton) -> bool:
++	if OS.has_feature("web"):
++		return false
+ 	var bit: int = 1 << event.button_index
+ 	if not event.pressed:
+ 		var was_swallowed: bool = (_swallowed_buttons & bit) != 0
